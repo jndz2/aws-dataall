@@ -19,7 +19,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install Requirements
-        run: |
-          python -m pip install --upgrade pip
+        run: make install-tests
       - name: Test
         run: make test
