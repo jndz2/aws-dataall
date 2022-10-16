@@ -59,4 +59,4 @@ jobs:
         run: |
           python -m pip install --upgrade pip
       - name: Security check
-          run: make check-security
+        run: make check-security
