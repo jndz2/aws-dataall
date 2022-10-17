@@ -54,7 +54,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          # cache: 'npm'
       - run: cd frontend
       - run: npm ci --production
       - run: npm run lint
