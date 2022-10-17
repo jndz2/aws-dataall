@@ -55,8 +55,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
       - name: Install Requirements and Lint
-      - run: |
+        run: |
           cd frontend
           yarn install --production
           yarn run lint
