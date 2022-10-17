@@ -55,9 +55,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           # cache: 'npm'
-      - run: cd frontend
-      - run: yarn install --production
-      - run: yarn run lint
+      - run: |
+          cd frontend
+          yarn install --production
+          yarn run lint
 
   security-check:
     runs-on: ubuntu-latest
