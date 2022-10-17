@@ -10,7 +10,6 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -28,7 +27,6 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -54,7 +52,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          # cache: 'npm'
+          cache: 'yarn'
+      - name: Install Requirements and Lint
       - run: |
           cd frontend
           yarn install --production
@@ -65,7 +64,6 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8]
-    
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
