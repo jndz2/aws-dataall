@@ -364,8 +364,7 @@ class PipelineStack(Stack):
                         f'aws codeartifact login --tool pip --repository {self.codeartifact.pip_repo.attr_name} --domain {self.codeartifact.domain.attr_name} --domain-owner {self.codeartifact.domain.attr_owner}',
                         f'export envname={self.git_branch}',
                         f'export schema_name=validation',
-                        'pip install virtualenv',
-                        'virtualenv env',
+                        'python -m venv env',
                         '. env/bin/activate',
                         'make drop-tables',
                         'make upgrade-db',
@@ -383,8 +382,7 @@ class PipelineStack(Stack):
                         'yum -y install shadow-utils wget && yum -y install openssl-devel bzip2-devel libffi-devel postgresql-devel',
                         f'aws codeartifact login --tool pip --repository {self.codeartifact.pip_repo.attr_name} --domain {self.codeartifact.domain.attr_name} --domain-owner {self.codeartifact.domain.attr_owner}',
                         'pip install --upgrade pip',
-                        'pip install virtualenv',
-                        'virtualenv env',
+                        "python -m venv env",
                         '. env/bin/activate',
                         'make check-security',
                     ],
@@ -398,8 +396,7 @@ class PipelineStack(Stack):
                     ),
                     commands=[
                         'pip install --upgrade pip',
-                        'pip install virtualenv',
-                        'virtualenv env',
+                        'python -m venv env',
                         '. env/bin/activate',
                         'make lint',
                         'cd frontend',
@@ -427,8 +424,7 @@ class PipelineStack(Stack):
                                         'yum -y install shadow-utils wget && yum -y install openssl-devel bzip2-devel libffi-devel postgresql-devel',
                                         f'aws codeartifact login --tool pip --repository {self.codeartifact.pip_repo.attr_name} --domain {self.codeartifact.domain.attr_name} --domain-owner {self.codeartifact.domain.attr_owner}',
                                         f'export envname={self.git_branch}',
-                                        'pip install virtualenv',
-                                        'virtualenv env',
+                                        'python -m venv env',
                                         '. env/bin/activate',
                                         'make coverage',
                                     ]
@@ -464,6 +460,38 @@ class PipelineStack(Stack):
                     security_groups=[self.codebuild_sg],
                 ),
             )
+        else:
+            it_project_role = iam.Role(
+                self,
+                id=f'ItCobdeBuildRole{self.git_branch}',
+                role_name=f'{self.resource_prefix}-{self.git_branch}-integration-tests-role',
+                assumed_by=iam.CompositePrincipal(
+                    iam.ServicePrincipal('codebuild.amazonaws.com'),
+                    iam.AccountPrincipal(self.account),
+                ),
+            )
+            for policy in self.codebuild_policy:
+                it_project_role.add_to_policy(policy)
+
+            gate_quality_wave = self.pipeline.add_wave('UploadCodeToS3')
+            gate_quality_wave.add_pre(
+                pipelines.CodeBuildStep(
+                    id='UploadCodeToS3',
+                    build_environment=codebuild.BuildEnvironment(
+                        build_image=codebuild.LinuxBuildImage.AMAZON_LINUX_2_3,
+                    ),
+                    commands=[
+                        'mkdir -p source_build',
+                        'mv backend ./source_build/',
+                        'cd source_build/ && zip -r ../source_build/source_build.zip *',
+                        f'aws s3api put-object --bucket {self.pipeline_bucket.bucket_name}  --key source_build.zip --body source_build.zip',
+                    ],
+                    role_policy_statements=self.codebuild_policy,
+                    vpc=self.vpc,
+                    security_groups=[self.codebuild_sg],
+                ),
+            )
+
 
     def set_ecr_stage(
         self,
@@ -555,6 +583,7 @@ class PipelineStack(Stack):
                 quicksight_enabled=target_env.get('enable_quicksight_monitoring', False),
                 enable_cw_rum=target_env.get('enable_cw_rum', False),
                 enable_cw_canaries=target_env.get('enable_cw_canaries', False),
+                shared_dashboard_sessions=target_env.get('shared_dashboard_sessions', 'anonymous'),
             )
         )
         return backend_stage
@@ -819,11 +848,20 @@ class PipelineStack(Stack):
                     vpc=self.vpc,
                 ),
             ],
+            post=self.evaluate_post_albfront_stage(target_env)
+        )
+
+    def evaluate_post_albfront_stage(self, target_env):
+        if target_env.get("enable_cw_rum", False):
             post=[
                 self.cognito_config_action(target_env),
                 self.cw_rum_config_action(target_env),
-            ],
-        )
+            ]
+        else:
+            post=[
+                self.cognito_config_action(target_env),
+            ]
+        return post
 
     def set_release_stage(
         self,
@@ -873,8 +911,7 @@ class PipelineStack(Stack):
                                 'commands': [
                                     'set -eu',
                                     f'aws codeartifact login --tool pip --repository {self.codeartifact.pip_repo.attr_name} --domain {self.codeartifact.domain.attr_name} --domain-owner {self.codeartifact.domain.attr_owner}',
-                                    'pip install virtualenv',
-                                    'virtualenv env',
+                                    'python -m venv env',
                                     '. env/bin/activate',
                                     'pip install git-remote-codecommit',
                                     'mkdir release && cd release',

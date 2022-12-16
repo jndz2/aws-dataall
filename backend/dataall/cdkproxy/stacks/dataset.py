@@ -195,8 +195,8 @@ class Dataset(Stack):
 
         quicksight_default_group_arn = None
         if env.dashboardsEnabled:
-            quicksight_default_group = Quicksight.create_quicksight_default_group(
-                dataset.AwsAccountId
+            quicksight_default_group = Quicksight.create_quicksight_group(
+                dataset.AwsAccountId, 'dataall'
             )
             quicksight_default_group_arn = quicksight_default_group['Group']['Arn']
 
@@ -461,44 +461,6 @@ class Dataset(Stack):
                     ),
                     'LocationUri': f's3://{dataset.S3BucketName}/',
                     'Name': f'{dataset.GlueDatabaseName}',
-                    'CreateTableDefaultPermissions': [],
-                },
-                'DatabaseAdministrators': dataset_admins,
-            },
-        )
-
-        glue_db_dev = CustomResource(
-            self,
-            f'{env.resourcePrefix}DatasetDatabaseDev',
-            service_token=GlueDatabase.service_token,
-            resource_type='Custom::GlueDatabase',
-            properties={
-                'CatalogId': dataset.AwsAccountId,
-                'DatabaseInput': {
-                    'Description': 'dataall development database {} '.format(
-                        dataset.GlueDatabaseName
-                    ),
-                    'LocationUri': f's3://{dataset.S3BucketName}/dev/',
-                    'Name': f'{dataset.GlueDatabaseName}dev',
-                    'CreateTableDefaultPermissions': [],
-                },
-                'DatabaseAdministrators': dataset_admins,
-            },
-        )
-
-        glue_db_test = CustomResource(
-            self,
-            f'{env.resourcePrefix}DatasetDatabaseTest',
-            service_token=GlueDatabase.service_token,
-            resource_type='Custom::GlueDatabase',
-            properties={
-                'CatalogId': dataset.AwsAccountId,
-                'DatabaseInput': {
-                    'Description': 'dataall test database {} '.format(
-                        dataset.GlueDatabaseName
-                    ),
-                    'LocationUri': f's3://{dataset.S3BucketName}/test/',
-                    'Name': f'{dataset.GlueDatabaseName}test',
                     'CreateTableDefaultPermissions': [],
                 },
                 'DatabaseAdministrators': dataset_admins,
